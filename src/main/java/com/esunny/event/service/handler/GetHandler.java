@@ -1,11 +1,13 @@
-package com.esunny.event.service;
+package com.esunny.event.service.handler;
 
+import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import java.io.*;
-import java.net.URI;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -14,18 +16,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.esunny.event.service.Service.REQUEST;
 import static java.lang.Thread.sleep;
 
-public class ServiceHandler implements HttpHandler {
+public class GetHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
         try {
-            Map<String, Object> obj = (Map<String, Object>) httpExchange.getAttribute(REQUEST);
+            List<Filter> fs = httpExchange.getHttpContext().getFilters();
+            Map<String, Object> as = httpExchange.getHttpContext().getAttributes();
+            Map<String, Object> params = null;
+            if (fs.size() > 0 && as.size() > 0) {
+                params = (Map<String, Object>) as.get(fs.get(0).description());
+                System.out.println(params);
+            }
             sleep(1000);
             StringBuilder responseText = new StringBuilder();
             responseText.append("请求方法：").append(httpExchange.getRequestMethod()).append("<br/>");
-            responseText.append("请求参数：").append(httpExchange.getAttribute(REQUEST)).append("<br/>");
+            responseText.append("请求参数：").append(params).append("<br/>");
             responseText.append("请求头：<br/>").append(getRequestHeader(httpExchange)).append("\n");
             handleResponse(httpExchange, responseText.toString());
         } catch (Exception ex) {
@@ -44,37 +51,6 @@ public class ServiceHandler implements HttpHandler {
         return headers.entrySet().stream()
                 .map((Map.Entry<String, List<String>> entry) -> entry.getKey() + ":" + entry.getValue().toString())
                 .collect(Collectors.joining("<br/>"));
-    }
-
-    /**
-     * 获取请求参数
-     *
-     * @param httpExchange
-     * @return
-     * @throws Exception
-     */
-    private String getRequestParam(HttpExchange httpExchange) throws Exception {
-        String paramStr = "";
-
-        if (httpExchange.getRequestMethod().equals("GET")) {
-            //GET请求读queryString
-            URI url = httpExchange.getRequestURI();
-            paramStr = url.getRawQuery();
-            System.out.println(paramStr);
-            paramStr = url.getQuery();
-            System.out.println(paramStr);
-        } else {
-            //非GET请求读请求体
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(httpExchange.getRequestBody(), StandardCharsets.UTF_8));
-            StringBuilder requestBodyContent = new StringBuilder();
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                requestBodyContent.append(line);
-            }
-            paramStr = requestBodyContent.toString();
-        }
-
-        return paramStr;
     }
 
     /**
