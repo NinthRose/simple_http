@@ -9,7 +9,7 @@
 - 支持多线程
 - 参数解析实例
     - get方法已测试
-    - post方法待测试
+    - post方法已测试
 
 
 ## get parameters
